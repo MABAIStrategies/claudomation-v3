@@ -33,6 +33,8 @@ import {
   saveStateToStorage,
   loadStateFromStorage,
 } from '../utils/localStorage';
+import { parseURLParams } from '../utils/urlParams';
+import { analytics, trackPageView } from '../utils/analytics';
 
 // ============================================================================
 // INITIAL STATE
@@ -215,11 +217,59 @@ interface JourneyProviderProps {
 export function JourneyProvider({ children }: JourneyProviderProps) {
   const [state, dispatch] = useReducer(journeyReducer, initialState);
 
-  // Hydrate from localStorage on mount
+  // Hydrate from localStorage and URL parameters on mount
   useEffect(() => {
     const stored = loadStateFromStorage();
-    if (stored) {
-      dispatch({ type: 'HYDRATE', payload: stored });
+    const urlParams = parseURLParams();
+
+    // Merge URL params with localStorage (URL takes precedence)
+    const hydratedState: Partial<JourneyState> = { ...stored };
+
+    // Apply viewer name from URL
+    if (urlParams.name) {
+      hydratedState.viewerName = urlParams.name;
+    }
+
+    // Apply ROI inputs from URL
+    if (urlParams.roiInputs) {
+      hydratedState.roiInputs = {
+        ...getDefaultROIInputs(),
+        ...stored?.roiInputs,
+        ...urlParams.roiInputs,
+      };
+    }
+
+    // Apply cart items from URL
+    if (urlParams.cartItems && urlParams.cartItems.length > 0) {
+      const chapters = automationJourneyConfig.chapters;
+      const cartLineItems = urlParams.cartItems
+        .map(chapterId => {
+          const chapter = chapters.find(c => c.id === chapterId);
+          if (!chapter) return null;
+          return {
+            chapterId: chapter.id,
+            chapterTitle: chapter.title,
+            costUSD: chapter.pricing.costUSD,
+            implHours: chapter.pricing.implHours,
+            savings: chapter.savings,
+          };
+        })
+        .filter(Boolean) as CartLineItem[];
+
+      if (cartLineItems.length > 0) {
+        hydratedState.cartLineItems = cartLineItems;
+        hydratedState.selectedChapterIds = cartLineItems.map(item => item.chapterId);
+        hydratedState.accumulatedSavings = calculateAccumulatedSavings(cartLineItems);
+      }
+    }
+
+    // Apply current page from URL
+    if (urlParams.currentPage !== undefined) {
+      hydratedState.currentChapterIndex = urlParams.currentPage;
+    }
+
+    if (Object.keys(hydratedState).length > 0) {
+      dispatch({ type: 'HYDRATE', payload: hydratedState });
     }
   }, []);
 
@@ -236,6 +286,18 @@ export function JourneyProvider({ children }: JourneyProviderProps) {
     () => chapters[state.currentChapterIndex],
     [chapters, state.currentChapterIndex]
   );
+
+  // Track page views when view changes
+  useEffect(() => {
+    const viewNames: Record<AppView, string> = {
+      'landing-cover': 'Landing Cover',
+      'title-map': 'Title Map',
+      'chapter': `Chapter: ${currentChapter?.title || 'Unknown'}`,
+      'executive-summary': 'Executive Summary',
+      'checkout': 'Checkout',
+    };
+    trackPageView(viewNames[state.currentView] || state.currentView);
+  }, [state.currentView, currentChapter]);
 
   const roiCalculation = useMemo(
     () => calculateFullROI(state.roiInputs, state.accumulatedSavings),
@@ -264,20 +326,27 @@ export function JourneyProvider({ children }: JourneyProviderProps) {
         savings: chapter.savings,
       };
       dispatch({ type: 'ADD_TO_CART', payload: lineItem });
+      analytics.addToCart(chapter.title, chapter.pricing.costUSD);
     },
     []
   );
 
   const removeFromCart = useCallback((chapterId: string) => {
+    const chapter = automationJourneyConfig.chapters.find(c => c.id === chapterId);
     dispatch({ type: 'REMOVE_FROM_CART', payload: chapterId });
+    if (chapter) {
+      analytics.removeFromCart(chapter.title);
+    }
   }, []);
 
   const selectPackage = useCallback((pkg: Package) => {
     dispatch({ type: 'SELECT_PACKAGE', payload: pkg });
+    analytics.selectPackage(pkg.tier, pkg.priceUSD);
   }, []);
 
   const updateROIInput = useCallback((id: keyof ROIInputs, value: number) => {
     dispatch({ type: 'UPDATE_ROI_INPUTS', payload: { [id]: value } });
+    analytics.updateROIInput(id, value);
   }, []);
 
   const goToNextChapter = useCallback(() => {

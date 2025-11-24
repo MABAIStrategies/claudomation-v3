@@ -8,6 +8,10 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import './index.css';
+import { initializeAnalytics } from './utils/analytics';
+
+// Initialize analytics
+initializeAnalytics();
 
 // Get the root element
 const rootElement = document.getElementById('root');
