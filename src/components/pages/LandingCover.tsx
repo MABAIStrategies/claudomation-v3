@@ -20,9 +20,8 @@ export function LandingCover() {
       dispatch({ type: 'SET_VIEWER_NAME', payload: nameInput.trim() });
     }
     dispatch({ type: 'OPEN_BOOK' });
-    setTimeout(() => {
-      navigateToView('title-map', 'open-book');
-    }, 800);
+    // Navigate immediately to avoid blank page
+    navigateToView('title-map', 'open-book');
   };
 
   return (
