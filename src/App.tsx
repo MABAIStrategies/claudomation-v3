@@ -86,7 +86,9 @@ function AppShell() {
     document.title = titles[state.currentView] || 'AI Automation Journey';
   }, [state.currentView]);
 
+  // TEMPORARILY DISABLED - Lead capture needs rebuild
   // Trigger lead capture modal after viewing 2+ chapters
+  /*
   useEffect(() => {
     if (
       state.chaptersViewed >= 2 &&
@@ -108,6 +110,7 @@ function AppShell() {
       dispatch({ type: 'INCREMENT_CHAPTERS_VIEWED' });
     }
   }, [state.currentChapterIndex, dispatch, state.currentView]);
+  */
 
   const handleLeadSubmit = async (leadData: LeadData) => {
     try {
