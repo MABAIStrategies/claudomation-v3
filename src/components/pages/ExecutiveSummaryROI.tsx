@@ -11,6 +11,7 @@ import { useJourney } from '../../context/JourneyContext';
 import { SuggestionsModal } from '../modals/SuggestionsModal';
 import { getValueOptimizationSuggestions } from '../../utils/suggestions';
 import { formatCurrency, formatNumber } from '../../utils/roiCalculations';
+import { ROICharts } from '../charts/ROICharts';
 
 export function ExecutiveSummaryROI() {
   const {
@@ -141,6 +142,15 @@ export function ExecutiveSummaryROI() {
               </li>
             ))}
           </ul>
+        </motion.section>
+
+        {/* ROI Visualizations */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+        >
+          <ROICharts roiCalculation={roiCalculation} accumulatedSavings={state.accumulatedSavings} />
         </motion.section>
 
         {/* ROI Calculator */}

@@ -5,9 +5,11 @@
  * view based on application state within the BookLayout wrapper.
  */
 
-import { Suspense, lazy, useEffect } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { JourneyProvider, useJourney } from './context/JourneyContext';
 import { BookLayout } from './components/book/BookLayout';
+import { LeadCaptureModal, type LeadData } from './components/modals/LeadCaptureModal';
+import { submitLeadToCRM } from './utils/crm';
 
 // Lazy-load pages for better performance
 const LandingCover = lazy(() => import('./components/pages/LandingCover'));
@@ -69,7 +71,8 @@ function ViewRouter() {
  * Wraps the view router with BookLayout for the book aesthetic.
  */
 function AppShell() {
-  const { state } = useJourney();
+  const { state, dispatch, roiCalculation } = useJourney();
+  const [showLeadModal, setShowLeadModal] = useState(false);
 
   // Set document title based on current view
   useEffect(() => {
@@ -83,13 +86,68 @@ function AppShell() {
     document.title = titles[state.currentView] || 'AI Automation Journey';
   }, [state.currentView]);
 
+  // Trigger lead capture modal after viewing 2+ chapters
+  useEffect(() => {
+    if (
+      state.chaptersViewed >= 2 &&
+      !state.leadCaptured &&
+      state.currentView === 'chapter' &&
+      !showLeadModal
+    ) {
+      // Small delay to not interrupt the user immediately
+      const timer = setTimeout(() => {
+        setShowLeadModal(true);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [state.chaptersViewed, state.leadCaptured, state.currentView, showLeadModal]);
+
+  // Track chapter views
+  useEffect(() => {
+    if (state.currentView === 'chapter') {
+      dispatch({ type: 'INCREMENT_CHAPTERS_VIEWED' });
+    }
+  }, [state.currentChapterIndex, dispatch, state.currentView]);
+
+  const handleLeadSubmit = async (leadData: LeadData) => {
+    try {
+      // Submit to CRM
+      await submitLeadToCRM(
+        leadData,
+        state.cartLineItems,
+        state.roiInputs,
+        roiCalculation.estimatedAnnualROI
+      );
+
+      // Mark as captured
+      dispatch({ type: 'SET_LEAD_CAPTURED', payload: { email: leadData.email } });
+
+      // Update viewer name if provided
+      if (leadData.name && leadData.name !== state.viewerName) {
+        dispatch({ type: 'SET_VIEWER_NAME', payload: leadData.name });
+      }
+    } catch (error) {
+      console.error('Failed to submit lead:', error);
+      throw error;
+    }
+  };
+
   // Determine if we show the full book frame
   const showBookFrame = state.currentView !== 'landing-cover' || state.isBookOpen;
 
   return (
-    <BookLayout showBookFrame={showBookFrame}>
-      <ViewRouter />
-    </BookLayout>
+    <>
+      <BookLayout showBookFrame={showBookFrame}>
+        <ViewRouter />
+      </BookLayout>
+
+      <LeadCaptureModal
+        isOpen={showLeadModal}
+        onClose={() => setShowLeadModal(false)}
+        onSubmit={handleLeadSubmit}
+        viewerName={state.viewerName}
+      />
+    </>
   );
 }
 

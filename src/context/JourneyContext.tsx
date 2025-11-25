@@ -68,6 +68,9 @@ const initialState: JourneyState = {
   isBookOpen: false,
   pendingTransition: 'none',
   paymentComplete: false,
+  leadCaptured: false,
+  leadEmail: '',
+  chaptersViewed: 0,
 };
 
 // ============================================================================
@@ -172,6 +175,19 @@ function journeyReducer(
       return {
         ...state,
         ...action.payload,
+      };
+
+    case 'SET_LEAD_CAPTURED':
+      return {
+        ...state,
+        leadCaptured: true,
+        leadEmail: action.payload.email,
+      };
+
+    case 'INCREMENT_CHAPTERS_VIEWED':
+      return {
+        ...state,
+        chaptersViewed: state.chaptersViewed + 1,
       };
 
     default:

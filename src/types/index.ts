@@ -131,6 +131,9 @@ export interface JourneyState {
   isBookOpen: boolean;
   pendingTransition: PageTransition;
   paymentComplete: boolean;
+  leadCaptured: boolean;
+  leadEmail: string;
+  chaptersViewed: number;
 }
 
 export type JourneyAction =
@@ -145,7 +148,9 @@ export type JourneyAction =
   | { type: 'SET_TRANSITION'; payload: PageTransition }
   | { type: 'COMPLETE_PAYMENT' }
   | { type: 'RESET_JOURNEY' }
-  | { type: 'HYDRATE'; payload: Partial<JourneyState> };
+  | { type: 'HYDRATE'; payload: Partial<JourneyState> }
+  | { type: 'SET_LEAD_CAPTURED'; payload: { email: string } }
+  | { type: 'INCREMENT_CHAPTERS_VIEWED' };
 
 // ============================================================================
 // ROI Calculation Types
