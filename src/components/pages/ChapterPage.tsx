@@ -14,6 +14,7 @@ import { useJourney } from '../../context/JourneyContext';
 import { SuggestionsModal } from '../modals/SuggestionsModal';
 import { getChapterSuggestions } from '../../utils/suggestions';
 import { formatCurrency } from '../../utils/roiCalculations';
+import { WorkflowDiagram } from '../diagrams/WorkflowDiagrams';
 
 // Tool icons mapping
 const toolIcons: Record<string, string> = {
@@ -140,65 +141,9 @@ export function ChapterPage() {
         >
           <h2 className="font-serif text-lg text-ink-500 mb-4">Workflow Visualization</h2>
 
-          {/* Diagram placeholder with hover info points */}
-          <div className="relative aspect-video bg-gradient-to-br from-parchment-200 to-parchment-300 rounded-lg overflow-hidden">
-            {/* Placeholder workflow diagram */}
-            <svg className="w-full h-full" viewBox="0 0 400 200">
-              {/* Flow background */}
-              <defs>
-                <linearGradient id="flowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#D4AF37" stopOpacity="0.2" />
-                  <stop offset="50%" stopColor="#D4AF37" stopOpacity="0.4" />
-                  <stop offset="100%" stopColor="#D4AF37" stopOpacity="0.2" />
-                </linearGradient>
-              </defs>
-
-              {/* Connection lines */}
-              <path
-                d="M60 100 L140 100 L200 100 L260 100 L340 100"
-                stroke="url(#flowGradient)"
-                strokeWidth="4"
-                fill="none"
-                strokeDasharray="8 4"
-              />
-
-              {/* Process nodes */}
-              {[
-                { x: 60, y: 100, label: 'Input' },
-                { x: 140, y: 100, label: 'Process' },
-                { x: 220, y: 100, label: 'AI' },
-                { x: 300, y: 100, label: 'Output' },
-              ].map((node, i) => (
-                <g key={i}>
-                  <circle
-                    cx={node.x}
-                    cy={node.y}
-                    r="30"
-                    fill="#F6E7C1"
-                    stroke="#D4AF37"
-                    strokeWidth="2"
-                  />
-                  <text
-                    x={node.x}
-                    y={node.y + 5}
-                    textAnchor="middle"
-                    className="font-serif text-xs"
-                    fill="#2B1B0E"
-                  >
-                    {node.label}
-                  </text>
-                </g>
-              ))}
-
-              {/* Arrows */}
-              {[100, 180, 260].map((x, i) => (
-                <polygon
-                  key={i}
-                  points={`${x},95 ${x + 15},100 ${x},105`}
-                  fill="#D4AF37"
-                />
-              ))}
-            </svg>
+          {/* Custom Workflow Diagram */}
+          <div className="relative aspect-video bg-gradient-to-br from-parchment-200 to-parchment-300 rounded-lg overflow-hidden shadow-inner">
+            <WorkflowDiagram chapterId={currentChapter.id} />
 
             {/* Hover info points */}
             {currentChapter.hoverInfo.map((_, index) => (
