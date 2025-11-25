@@ -15,6 +15,10 @@ import { SuggestionsModal } from '../modals/SuggestionsModal';
 import { getChapterSuggestions } from '../../utils/suggestions';
 import { formatCurrency } from '../../utils/roiCalculations';
 import { WorkflowDiagram } from '../diagrams/WorkflowDiagrams';
+import {
+  CornerFlourish,
+  ScrollEdge,
+} from '../decorations/OrnateElements';
 
 // Tool icons mapping
 const toolIcons: Record<string, string> = {
@@ -100,7 +104,17 @@ export function ChapterPage() {
   }, [isFirstChapter, goToPreviousChapter, navigateToView, dispatch]);
 
   return (
-    <div className="flex flex-col h-full min-h-[600px]">
+    <div className="flex flex-col h-full min-h-[600px] relative">
+      {/* Ornate corner decorations */}
+      <CornerFlourish position="top-left" />
+      <CornerFlourish position="top-right" />
+      <CornerFlourish position="bottom-left" />
+      <CornerFlourish position="bottom-right" />
+
+      {/* Scroll edges */}
+      <ScrollEdge side="left" />
+      <ScrollEdge side="right" />
+
       {/* Sticky Title Banner */}
       <motion.div
         className="sticky top-0 z-20 px-4 py-3 md:px-6 md:py-4"
