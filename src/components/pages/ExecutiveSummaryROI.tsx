@@ -12,6 +12,8 @@ import { SuggestionsModal } from '../modals/SuggestionsModal';
 import { getValueOptimizationSuggestions } from '../../utils/suggestions';
 import { formatCurrency, formatNumber } from '../../utils/roiCalculations';
 import { ROICharts } from '../charts/ROICharts';
+import { generateProposalPDF } from '../../utils/pdfExport';
+import { generateShareURL, copyToClipboard } from '../../utils/urlParams';
 
 export function ExecutiveSummaryROI() {
   const {
@@ -27,6 +29,8 @@ export function ExecutiveSummaryROI() {
 
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showMethodology, setShowMethodology] = useState(false);
+  const [exportingPDF, setExportingPDF] = useState(false);
+  const [shareNotification, setShareNotification] = useState<string | null>(null);
 
   const handlePrevious = useCallback(() => {
     dispatch({ type: 'SET_CHAPTER_INDEX', payload: totalChapters - 1 });
@@ -40,6 +44,43 @@ export function ExecutiveSummaryROI() {
       navigateToView('checkout', 'treasure-erupt');
     }, 100);
   }, [dispatch, navigateToView]);
+
+  const handleExportPDF = useCallback(async () => {
+    try {
+      setExportingPDF(true);
+      await generateProposalPDF({
+        state,
+        roiCalculation,
+        accumulatedSavings: state.accumulatedSavings,
+      });
+    } catch (error) {
+      console.error('Failed to export PDF:', error);
+      alert('Failed to generate PDF. Please try again.');
+    } finally {
+      setExportingPDF(false);
+    }
+  }, [state, roiCalculation]);
+
+  const handleShare = useCallback(async () => {
+    try {
+      const shareUrl = generateShareURL(
+        state.viewerName || '',
+        state.cartLineItems,
+        state.roiInputs,
+        state.currentChapterIndex
+      );
+
+      const success = await copyToClipboard(shareUrl);
+      if (success) {
+        setShareNotification('Journey URL copied to clipboard! 📋');
+        setTimeout(() => setShareNotification(null), 3000);
+      } else {
+        alert('Failed to copy URL. Please copy manually:\n\n' + shareUrl);
+      }
+    } catch (error) {
+      console.error('Failed to generate share URL:', error);
+    }
+  }, [state]);
 
   const kpiTiles = [
     {
@@ -343,6 +384,94 @@ export function ExecutiveSummaryROI() {
             </motion.div>
           )}
         </motion.section>
+
+        {/* Export & Share Section */}
+        <motion.section
+          className="grid md:grid-cols-2 gap-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.75 }}
+        >
+          {/* Export PDF Button */}
+          <motion.button
+            onClick={handleExportPDF}
+            disabled={exportingPDF}
+            className="relative group bg-gradient-to-br from-parchment-100 to-parchment-200 rounded-lg p-6 border-2 border-gold-400/30 hover:border-gold-500/60 transition-all shadow-md hover:shadow-glow-gold focus:outline-none focus:ring-2 focus:ring-gold-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            whileHover={{ scale: exportingPDF ? 1 : 1.02 }}
+            whileTap={{ scale: exportingPDF ? 1 : 0.98 }}
+          >
+            {/* Ornate corner decorations */}
+            <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-gold-500/50" />
+            <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-gold-500/50" />
+            <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-gold-500/50" />
+            <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-gold-500/50" />
+
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-crimson-500 to-crimson-600 rounded-full flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
+                {exportingPDF ? (
+                  <div className="w-6 h-6 border-3 border-parchment-100 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <svg className="w-6 h-6 text-parchment-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                )}
+              </div>
+              <div className="text-center">
+                <h3 className="font-display text-lg text-ink-500 mb-1">
+                  {exportingPDF ? 'Creating Scroll...' : 'Export Proposal'}
+                </h3>
+                <p className="text-sm text-ink-400 font-body">
+                  Download fantasy-styled PDF
+                </p>
+              </div>
+            </div>
+          </motion.button>
+
+          {/* Share Journey Button */}
+          <motion.button
+            onClick={handleShare}
+            className="relative group bg-gradient-to-br from-parchment-100 to-parchment-200 rounded-lg p-6 border-2 border-gold-400/30 hover:border-gold-500/60 transition-all shadow-md hover:shadow-glow-gold focus:outline-none focus:ring-2 focus:ring-gold-500"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            {/* Ornate corner decorations */}
+            <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-gold-500/50" />
+            <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-gold-500/50" />
+            <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-gold-500/50" />
+            <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-gold-500/50" />
+
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
+                <svg className="w-6 h-6 text-parchment-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+              </div>
+              <div className="text-center">
+                <h3 className="font-display text-lg text-ink-500 mb-1">Share Journey</h3>
+                <p className="text-sm text-ink-400 font-body">
+                  Copy shareable URL
+                </p>
+              </div>
+            </div>
+          </motion.button>
+        </motion.section>
+
+        {/* Share Notification */}
+        {shareNotification && (
+          <motion.div
+            className="fixed top-4 right-4 z-50 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white px-6 py-3 rounded-lg shadow-lg border-2 border-emerald-400"
+            initial={{ opacity: 0, y: -20, x: 100 }}
+            animate={{ opacity: 1, y: 0, x: 0 }}
+            exit={{ opacity: 0, y: -20, x: 100 }}
+          >
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="font-body">{shareNotification}</span>
+            </div>
+          </motion.div>
+        )}
       </div>
 
       {/* Bottom Navigation */}
